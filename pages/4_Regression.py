@@ -1,3 +1,4 @@
+# pages/4_Regression.py
 import streamlit as st
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -40,11 +41,17 @@ y = df[y_col]
 # Split data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Initialize models
+# Initialize models with XGBoost optimized for performance
 models = {
     "Linear Regression": LinearRegression(),
     "Random Forest": RandomForestRegressor(random_state=42),
-    "XGBoost": XGBRegressor(random_state=42, verbosity=0)
+    "XGBoost": XGBRegressor(
+        n_estimators=50,
+        max_depth=3,
+        learning_rate=0.1,
+        verbosity=0,
+        random_state=42
+    )
 }
 
 st.subheader("Train and Evaluate Models")
@@ -56,7 +63,7 @@ for i, (name, model) in enumerate(models.items()):
     y_pred = model.predict(X_test)
     mae = mean_absolute_error(y_test, y_pred)
     mse = mean_squared_error(y_test, y_pred)
-    rmse = mse ** 0.5  # Avoid using squared=False for compatibility
+    rmse = mse ** 0.5  # Compatibility with older sklearn
     r2 = r2_score(y_test, y_pred)
 
     model_results[name] = {
