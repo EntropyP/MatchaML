@@ -47,7 +47,7 @@ if st.button("Run Analysis"):
 
         mae = mean_absolute_error(y, y_pred)
         mse = mean_squared_error(y, y_pred)
-        rmse = mean_squared_error(y, y_pred, squared=False)
+        rmse = mse ** 0.5  # compatibility for older sklearn versions
         r2 = r2_score(y, y_pred)
 
         results.append({
