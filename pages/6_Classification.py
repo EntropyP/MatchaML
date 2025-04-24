@@ -52,6 +52,15 @@ else:
         st.info(f"Target variable is continuous. It has been automatically binned into three categories:\n\n- Low (≤ {q1:.2f})\n- Medium (> {q1:.2f} and ≤ {q2:.2f})\n- High (> {q2:.2f})")
         y = pd.qcut(y_raw, q=3, labels=False)
 
+# Check for missing values
+if X.isnull().any().any() or pd.isnull(y).any():
+    st.error("X or y contains missing values. Please clean your data first.")
+    st.stop()
+
+# Warn for high dimensional input
+if X.shape[1] > 100:
+    st.warning("High dimensional input may crash Streamlit Cloud. Consider reducing features.")
+
 # Split data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -63,7 +72,7 @@ k_neighbors = st.slider("Number of Neighbors (K)", min_value=1, max_value=20, va
 models = {
     "Logistic Regression": LogisticRegression(max_iter=1000),
     "Random Forest": RandomForestClassifier(random_state=42),
-    "XGBoost": XGBClassifier(random_state=42, verbosity=0),
+    "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', random_state=42, verbosity=0),
     f"KNN (k={k_neighbors})": KNeighborsClassifier(n_neighbors=k_neighbors)
 }
 
@@ -72,28 +81,32 @@ model_results = {}
 col1, col2, col3, col4 = st.columns(4)
 
 for i, (name, model) in enumerate(models.items()):
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    acc = accuracy_score(y_test, y_pred)
-    prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-    recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-    f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+    try:
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+        recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+        f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
 
-    model_results[name] = {
-        "model": model,
-        "Accuracy": acc,
-        "Precision": prec,
-        "Recall": recall,
-        "F1": f1,
-        "y_pred": y_pred
-    }
+        model_results[name] = {
+            "model": model,
+            "Accuracy": acc,
+            "Precision": prec,
+            "Recall": recall,
+            "F1": f1,
+            "y_pred": y_pred
+        }
 
-    with [col1, col2, col3, col4][i]:
-        st.markdown(f"#### {name}")
-        st.metric("Accuracy", f"{acc:.4f}")
-        st.metric("Precision", f"{prec:.4f}")
-        st.metric("Recall", f"{recall:.4f}")
-        st.metric("F1 Score", f"{f1:.4f}")
+        with [col1, col2, col3, col4][i]:
+            st.markdown(f"#### {name}")
+            st.metric("Accuracy", f"{acc:.4f}")
+            st.metric("Precision", f"{prec:.4f}")
+            st.metric("Recall", f"{recall:.4f}")
+            st.metric("F1 Score", f"{f1:.4f}")
+
+    except Exception as e:
+        st.error(f"Error training {name}: {e}")
 
 st.markdown("---")
 
